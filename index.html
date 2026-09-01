@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Викторина</title>
+<title>Викторина: какой ты игровой персонаж?</title>
 <style>
   html, body {
     height: 100%;
@@ -16,6 +16,13 @@
   }
   .quiz {
     text-align: center;
+    max-width: 640px;
+    padding: 1rem;
+  }
+  .progress {
+    font-size: 1rem;
+    color: #888;
+    margin-bottom: 1rem;
   }
   .question {
     font-size: 2.2rem;
@@ -25,6 +32,7 @@
     display: flex;
     gap: 1.5rem;
     justify-content: center;
+    flex-wrap: wrap;
   }
   button {
     font-size: 1.4rem;
@@ -35,31 +43,200 @@
     color: #fff;
     cursor: pointer;
   }
-  button:hover {
+  button:hover:not(:disabled) {
     background: #555;
   }
-  .result {
+  button:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+  .result-msg {
     margin-top: 1.5rem;
     font-size: 1.6rem;
     color: #4caf50;
     min-height: 2rem;
   }
+  .final img {
+    max-width: 280px;
+    width: 100%;
+    border-radius: 12px;
+    box-shadow: 0 0 30px rgba(255,255,255,0.15);
+    margin-bottom: 1.5rem;
+  }
+  .final h2 {
+    font-size: 2.4rem;
+    margin: 0 0 0.3rem;
+  }
+  .final p {
+    font-size: 1.3rem;
+    color: #aaa;
+    margin: 0 0 2rem;
+  }
+  .restart {
+    font-size: 1.2rem;
+    padding: 0.6rem 1.6rem;
+    border: none;
+    border-radius: 8px;
+    background: #4caf50;
+    color: #fff;
+    cursor: pointer;
+  }
+  .restart:hover {
+    background: #5fd464;
+  }
+  [hidden] {
+    display: none !important;
+  }
 </style>
 </head>
 <body>
   <div class="quiz">
-    <div class="question">Что ты выберешь в бою — меч или магию?</div>
-    <div class="answers">
-      <button onclick="answer()">Меч</button>
-      <button onclick="answer()">Магия</button>
+
+    <div id="quizScreen">
+      <div class="progress" id="progress"></div>
+      <div class="question" id="question"></div>
+      <div class="answers" id="answers"></div>
+      <div class="result-msg" id="resultMsg"></div>
     </div>
-    <div class="result" id="result"></div>
+
+    <div id="finalScreen" class="final" hidden>
+      <img id="finalImg" src="" alt="">
+      <h2 id="finalName"></h2>
+      <p id="finalGame"></p>
+      <button class="restart" onclick="restartQuiz()">Пройти ещё раз</button>
+    </div>
+
   </div>
 
   <script>
-    function answer() {
-      document.getElementById('result').textContent = 'Ответ засчитан';
+    const characters = {
+      mario:   { name: 'Марио',           game: 'Super Mario Bros.',   file: 'characters/mario.png' },
+      link:    { name: 'Линк',            game: 'The Legend of Zelda', file: 'characters/link.png' },
+      kratos:  { name: 'Кратос',          game: 'God of War',          file: 'characters/kratos.png' },
+      lara:    { name: 'Лара Крофт',      game: 'Tomb Raider',         file: 'characters/lara-croft.png' },
+      sonic:   { name: 'Соник',           game: 'Sonic the Hedgehog',  file: 'characters/sonic.png' },
+      geralt:  { name: 'Геральт из Ривии', game: 'The Witcher',        file: 'characters/geralt.png' },
+      scorpion:{ name: 'Скорпион',        game: 'Mortal Kombat',       file: 'characters/scorpion.png' },
+      paimon:  { name: 'Паймон',          game: 'Genshin Impact',      file: 'characters/paimon.png' },
+    };
+
+    const questions = [
+      {
+        text: 'Что ты выберешь в бою — меч или магию?',
+        answers: [
+          { text: 'Меч', character: 'geralt' },
+          { text: 'Магия', character: 'paimon' },
+        ],
+      },
+      {
+        text: 'В опасной ситуации ты...',
+        answers: [
+          { text: 'Бросаюсь в бой не раздумывая', character: 'kratos' },
+          { text: 'Сначала оцениваю обстановку', character: 'lara' },
+        ],
+      },
+      {
+        text: 'Тебе ближе стиль боя...',
+        answers: [
+          { text: 'Грубая сила и напор', character: 'scorpion' },
+          { text: 'Скорость и ловкость', character: 'sonic' },
+        ],
+      },
+      {
+        text: 'Как ты относишься к риску?',
+        answers: [
+          { text: 'Рискну ради большой награды', character: 'mario' },
+          { text: 'Выберу надёжный, проверенный путь', character: 'link' },
+        ],
+      },
+      {
+        text: 'В команде ты обычно...',
+        answers: [
+          { text: 'Лидер, который ведёт за собой', character: 'kratos' },
+          { text: 'Незаметный, но незаменимый помощник', character: 'paimon' },
+        ],
+      },
+      {
+        text: 'Что важнее в бою?',
+        answers: [
+          { text: 'Победа любой ценой', character: 'scorpion' },
+          { text: 'Честь и справедливость', character: 'geralt' },
+        ],
+      },
+      {
+        text: 'Что тебе ближе?',
+        answers: [
+          { text: 'Молниеносная скорость', character: 'sonic' },
+          { text: 'Несгибаемая выносливость', character: 'mario' },
+        ],
+      },
+    ];
+
+    let current = 0;
+    const scores = {};
+
+    function resetScores() {
+      Object.keys(characters).forEach(key => scores[key] = 0);
     }
+
+    function renderQuestion() {
+      document.getElementById('resultMsg').textContent = '';
+      document.getElementById('progress').textContent =
+        `Вопрос ${current + 1} из ${questions.length}`;
+
+      const q = questions[current];
+      document.getElementById('question').textContent = q.text;
+
+      const answersEl = document.getElementById('answers');
+      answersEl.innerHTML = '';
+      q.answers.forEach(a => {
+        const btn = document.createElement('button');
+        btn.textContent = a.text;
+        btn.onclick = () => selectAnswer(a.character);
+        answersEl.appendChild(btn);
+      });
+    }
+
+    function selectAnswer(character) {
+      scores[character]++;
+      document.getElementById('resultMsg').textContent = 'Ответ засчитан';
+      document.querySelectorAll('#answers button').forEach(b => b.disabled = true);
+
+      setTimeout(() => {
+        current++;
+        if (current < questions.length) {
+          renderQuestion();
+        } else {
+          showResult();
+        }
+      }, 600);
+    }
+
+    function showResult() {
+      let winnerKey = Object.keys(scores)[0];
+      Object.keys(scores).forEach(key => {
+        if (scores[key] > scores[winnerKey]) winnerKey = key;
+      });
+      const winner = characters[winnerKey];
+
+      document.getElementById('quizScreen').hidden = true;
+      document.getElementById('finalScreen').hidden = false;
+      document.getElementById('finalImg').src = winner.file;
+      document.getElementById('finalImg').alt = winner.name;
+      document.getElementById('finalName').textContent = winner.name;
+      document.getElementById('finalGame').textContent = winner.game;
+    }
+
+    function restartQuiz() {
+      current = 0;
+      resetScores();
+      document.getElementById('finalScreen').hidden = true;
+      document.getElementById('quizScreen').hidden = false;
+      renderQuestion();
+    }
+
+    resetScores();
+    renderQuestion();
   </script>
 </body>
 </html>
